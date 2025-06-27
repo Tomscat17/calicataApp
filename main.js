@@ -1,6 +1,7 @@
 let calicatasGuardadas = []; // Acá se almacenan las calicatas
 let datosProyecto = null;
 let contadorCalicatas = 1;
+let totalEstratos = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   const btnIniciar = document.getElementById('btn-iniciar');
@@ -84,14 +85,7 @@ function mostrarPantallaCalicata() {
 
         <hr>
         <h3>Estratificación del Suelo</h3>
-        <label for="numero-estratos">¿Cuántos estratos desea ingresar?</label>
-        <select id="numero-estratos">
-          <option value="" selected disabled>Seleccione</option>
-          <option value="0">0</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
+        
 
         <div id="estratos-container"></div>
         <div id="observaciones-container"></div>
@@ -117,13 +111,35 @@ function mostrarPantallaCalicata() {
     `;
 
     document.body.appendChild(calicataDiv);
-    document.getElementById('numero-estratos').addEventListener('change', mostrarEstratos);
+
+    document.getElementById('btn-guardar-calicata').addEventListener('click', guardarCalicata);
+    document.getElementById('btn-guardar-proyecto').addEventListener('click', guardarProyecto);
+    
   }
 
   document.getElementById('nombre-calicata').value = `Calicata ${contadorCalicatas}`;
   document.getElementById('fecha-ensayo').value = new Date().toLocaleDateString();
-  document.getElementById('btn-guardar-calicata').addEventListener('click', guardarCalicata);
-  document.getElementById('btn-guardar-proyecto').addEventListener('click', guardarProyecto);
+
+  totalEstratos = 0;
+  document.getElementById('estratos-container').innerHTML = '';
+  document.getElementById('observaciones-container').innerHTML = '';
+
+  // Agregar primer estrato
+  agregarEstrato();
+  // Botón para agregar más estratos
+  //const botonAgregar = document.createElement('button');
+  //botonAgregar.type = 'button';
+  //botonAgregar.id = 'btn-agregar-estrato';
+  //botonAgregar.textContent = 'Agregar Estrato';
+  //botonAgregar.style.marginTop = '10px';
+
+  //document.getElementById('estratos-container').appendChild(botonAgregar);
+
+
+
+  //document.getElementById('btn-agregar-estrato').addEventListener('click', agregarEstrato);
+
+  
 
 }
 
@@ -331,7 +347,7 @@ function guardarCalicata() {
     }
   };
 
-  const numeroEstratos = parseInt(document.getElementById('numero-estratos').value || 0);
+  const numeroEstratos = document.querySelectorAll('.estrato').length;
   for (let i = 1; i <= numeroEstratos; i++) {
     const estrato = {
       desde: document.getElementById(`desde${i}`).value,
@@ -376,23 +392,43 @@ function guardarCalicata() {
 }
 
 function resetearFormularioCalicata() {
-  const form = document.getElementById('form-calicata');
-  form.reset();
+  // Limpiar campos manualmente
+  document.getElementById('dm').value = '';
+  document.getElementById('lado').selectedIndex = 0;
+  document.getElementById('napa').value = '';
+  document.getElementById('espesor').value = '';
+  document.getElementById('confeccion').selectedIndex = 0;
+  document.getElementById('forma').selectedIndex = 0;
 
-  // Eliminar contenido de estratos y observaciones
-  document.getElementById('estratos-container').innerHTML = '';
-  document.getElementById('observaciones-container').innerHTML = '';
+  // Limpiar fotos
+  const foto1 = document.getElementById('foto1');
+  const preview1 = document.getElementById('preview1');
+  foto1.value = '';
+  preview1.src = '';
+  preview1.style.display = 'none';
 
-  // Resetear previews de fotos
-  document.getElementById('preview1').src = '';
-  document.getElementById('preview1').style.display = 'none';
-  document.getElementById('preview2').src = '';
-  document.getElementById('preview2').style.display = 'none';
+  const foto2 = document.getElementById('foto2');
+  const preview2 = document.getElementById('preview2');
+  foto2.value = '';
+  preview2.src = '';
+  preview2.style.display = 'none';
 
-  // Rellenar nombre y fecha automáticos
+  // Limpiar estratos y observaciones
+  totalEstratos = 0;
+  const containerEstratos = document.getElementById('estratos-container');
+  const containerObs = document.getElementById('observaciones-container');
+  containerEstratos.innerHTML = '';
+  containerObs.innerHTML = '';
+
+  // Reiniciar nombre y fecha de la nueva calicata
   document.getElementById('nombre-calicata').value = `Calicata ${contadorCalicatas}`;
   document.getElementById('fecha-ensayo').value = new Date().toLocaleDateString();
+
+  // Agregar el primer estrato
+  agregarEstrato();
 }
+
+
 
 function guardarProyecto() {
   const confirmar = confirm("¿Deseas guardar el proyecto completo?");
@@ -420,3 +456,171 @@ function guardarProyecto() {
   // Limpiar formulario del proyecto
   document.getElementById('form-proyecto').reset();
 }
+
+function agregarEstrato() {
+  totalEstratos++;
+  const i = totalEstratos;
+
+  const botonAntiguo = document.getElementById('btn-agregar-estrato');
+  if (botonAntiguo) {
+    botonAntiguo.remove();
+  }
+
+  const estrato = document.createElement('div');
+  estrato.classList.add('estrato');
+
+  estrato.innerHTML = `
+    <hr>
+    <h4>Estrato ${i}</h4>
+    <label>Desde (m):</label>
+    <input type="number" step="0.01" id="desde${i}">
+    <label>Hasta (m):</label>
+    <input type="number" step="0.01" id="hasta${i}">
+
+    <h5>Granulometría del Suelo</h5>
+    <strong>Total</strong><br>
+    <label>T. Max. (pulg):</label>
+    <input type="number" step="0.01" id="tmax${i}">
+    <label>Bolones (% > 80 mm):</label>
+    <input type="number" step="0.01" id="bolones${i}">
+
+    <strong>Fracción menor que tamiz 80 mm</strong><br>
+    <label>Grava (%):</label>
+    <input type="number" step="0.01" id="grava${i}">
+    <label>Arena (%):</label>
+    <input type="number" step="0.01" id="arena${i}">
+    <label>Fino (%):</label>
+    <input type="number" step="0.01" id="fino${i}">
+
+    <label>Color en estado natural:</label>
+    <input type="text" id="color${i}">
+
+    <label>Tipo de Suelo Fino:</label>
+    <select id="suelo${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Arcilla">Arcilla</option>
+      <option value="Limo">Limo</option>
+    </select>
+
+    <label>Olor:</label>
+    <select id="olor${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Ninguno">Ninguno</option>
+      <option value="Térro">Térro</option>
+      <option value="Orgánico">Orgánico</option>
+    </select>
+
+    <label>Graduación:</label>
+    <select id="graduacion${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Fina">Fina</option>
+      <option value="Media">Media</option>
+      <option value="Gruesa">Gruesa</option>
+    </select>
+
+    <label>Plasticidad:</label>
+    <select id="plasticidad${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Ninguna">Ninguna</option>
+      <option value="Baja">Baja</option>
+      <option value="Media">Media</option>
+      <option value="Alta">Alta</option>
+    </select>
+
+    <label>Forma de Partículas:</label>
+    <select id="forma${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Redondeado">Redondeado</option>
+      <option value="Sub-redondeado">Sub-redondeado</option>
+      <option value="Angular">Angular</option>
+      <option value="Sub-angular">Sub-angular</option>
+    </select>
+
+    <label>Humedad:</label>
+    <select id="humedad${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Seco">Seco</option>
+      <option value="Húmedo">Húmedo</option>
+      <option value="Mojado">Mojado</option>
+      <option value="Saturado">Saturado</option>
+    </select>
+
+    <label>Compacidad:</label>
+    <select id="compacidad${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Densa">Densa</option>
+      <option value="Suelta">Suelta</option>
+    </select>
+
+    <label>Consistencia:</label>
+    <select id="consistencia${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Blanda">Blanda</option>
+      <option value="Media">Media</option>
+      <option value="Firme">Firme</option>
+      <option value="Muy firme">Muy firme</option>
+      <option value="Dura">Dura</option>
+    </select>
+
+    <label>Estructura:</label>
+    <select id="estructura${i}" onchange="mostrarOtro(this, 'estructuraOtro${i}')">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Estratificado">Estratificado</option>
+      <option value="Laminado">Laminado</option>
+      <option value="Homog. Vesicular">Homog. Vesicular</option>
+      <option value="Otro">Otro (especifique)</option>
+    </select>
+    <input type="text" id="estructuraOtro${i}" style="display:none;" placeholder="Otro (estructura)">
+
+    <label>Cementación:</label>
+    <select id="cementacion${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Débil">Débil</option>
+      <option value="Fuerte">Fuerte</option>
+    </select>
+
+    <label>Origen:</label>
+    <select id="origen${i}" onchange="mostrarOtro(this, 'origenOtro${i}')">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Fluvial">Fluvial</option>
+      <option value="Artificial">Artificial</option>
+      <option value="Otro">Otro (especifique)</option>
+    </select>
+    <input type="text" id="origenOtro${i}" style="display:none;" placeholder="Otro (origen)">
+
+    <label>Materia Orgánica o Raíces:</label>
+    <select id="organica${i}">
+      <option value="" selected disabled>Seleccione</option>
+      <option value="Sin indicios">Sin indicios</option>
+      <option value="Mediana">Mediana</option>
+      <option value="Abundante">Abundante</option>
+    </select>
+
+    <label>Nombre Local del Suelo (si existe):</label>
+    <input type="text" id="nombrelocal${i}">
+  `;
+
+  document.getElementById('estratos-container').appendChild(estrato);
+
+  
+
+  // Añadir observación al final
+  const obs = document.createElement('div');
+  obs.innerHTML = `
+    <label for="observacion${i}">Observación Estrato ${i}:</label>
+    <textarea id="observacion${i}" rows="2" style="width:100%;"></textarea>
+  `;
+  document.getElementById('observaciones-container').appendChild(obs);
+
+  // Crear nuevamente el botón y moverlo abajo del nuevo estrato
+  const botonAgregar = document.createElement('button');
+  botonAgregar.type = 'button';
+  botonAgregar.id = 'btn-agregar-estrato';
+  botonAgregar.textContent = 'Agregar Estrato';
+  botonAgregar.style.marginTop = '10px';
+
+  botonAgregar.addEventListener('click', agregarEstrato);
+  document.getElementById('estratos-container').appendChild(botonAgregar);
+}
+
+
