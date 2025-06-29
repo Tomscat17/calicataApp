@@ -125,7 +125,7 @@ function mostrarPantallaCalicata() {
   document.getElementById('observaciones-container').innerHTML = '';
 
   // Agregar primer estrato
-  agregarEstrato();
+  agregarEstrato(false);
   // Botón para agregar más estratos
   //const botonAgregar = document.createElement('button');
   //botonAgregar.type = 'button';
@@ -143,6 +143,7 @@ function mostrarPantallaCalicata() {
 
 }
 
+
 function mostrarEstratos() {
   const numeroEstratos = parseInt(document.getElementById('numero-estratos').value);
   const container = document.getElementById('estratos-container');
@@ -157,7 +158,9 @@ function mostrarEstratos() {
 
     estrato.innerHTML = `
       <hr>
+
       <h4>Estrato ${i}</h4>
+        
 
       <strong>Profundidad estratigráfica (m)</strong><br>
       <label>Desde (m):</label>
@@ -287,8 +290,11 @@ function mostrarEstratos() {
 
       <label>Nombre Local del Suelo (si existe):</label>
       <input type="text" id="nombrelocal${i}">
+
+      <button type="button" class="btn-eliminar-estrato" data-index="${i}" style="margin-top: 10px;">Eliminar Estrato</button>
     `;
     container.appendChild(estrato);
+    
   }
 
   obsContainer.innerHTML = '<hr><h4>Observaciones Finales</h4>';
@@ -425,7 +431,7 @@ function resetearFormularioCalicata() {
   document.getElementById('fecha-ensayo').value = new Date().toLocaleDateString();
 
   // Agregar el primer estrato
-  agregarEstrato();
+  agregarEstrato(false);
 }
 
 
@@ -457,21 +463,37 @@ function guardarProyecto() {
   document.getElementById('form-proyecto').reset();
 }
 
-function agregarEstrato() {
+function agregarEstrato(confirmarMensaje = true) {
+
+  if (totalEstratos >= 3) {
+    alert("No puedes agregar más de 3 estratos.");
+    return;
+  }
+
+  if (confirmarMensaje) {
+    const confirmar = confirm("¿Estás seguro que deseas agregar un nuevo estrato?");
+    if (!confirmar) return;
+  }
+
   totalEstratos++;
   const i = totalEstratos;
 
-  const botonAntiguo = document.getElementById('btn-agregar-estrato');
-  if (botonAntiguo) {
-    botonAntiguo.remove();
-  }
+  //const botonAntiguo = document.getElementById('btn-agregar-estrato');
+  //if (botonAntiguo) {
+    //botonAntiguo.remove();
+  //}
 
   const estrato = document.createElement('div');
   estrato.classList.add('estrato');
 
   estrato.innerHTML = `
     <hr>
-    <h4>Estrato ${i}</h4>
+      
+      <h4>Estrato ${i}</h4>
+        
+
+
+
     <label>Desde (m):</label>
     <input type="number" step="0.01" id="desde${i}">
     <label>Hasta (m):</label>
@@ -598,11 +620,17 @@ function agregarEstrato() {
 
     <label>Nombre Local del Suelo (si existe):</label>
     <input type="text" id="nombrelocal${i}">
+
+    <button type="button" class="btn-eliminar-estrato" data-index="${i}" style="margin-top: 10px;">Eliminar Estrato</button>
   `;
 
   document.getElementById('estratos-container').appendChild(estrato);
-
   
+
+  // Asociar el botón de eliminar
+  const btnEliminar = estrato.querySelector('.btn-eliminar-estrato');
+  btnEliminar.addEventListener('click', () => eliminarEstrato(i));
+
 
   // Añadir observación al final
   const obs = document.createElement('div');
@@ -611,16 +639,64 @@ function agregarEstrato() {
     <textarea id="observacion${i}" rows="2" style="width:100%;"></textarea>
   `;
   document.getElementById('observaciones-container').appendChild(obs);
+  
+  
+  // Si ya hay 3 estratos, deshabilitar el botón de agregar estrato
+  if (totalEstratos === 3) {
+    const botonAgregar = document.getElementById('btn-agregar-estrato');
+    if (botonAgregar) {
+      botonAgregar.disabled = true; // Deshabilita el botón
+    }
+  }
+
+  // Eliminar botón anterior si existe
+const botonAnterior = document.getElementById('btn-agregar-estrato');
+if (botonAnterior) {
+  botonAnterior.remove();
+}
 
   // Crear nuevamente el botón y moverlo abajo del nuevo estrato
+  
   const botonAgregar = document.createElement('button');
   botonAgregar.type = 'button';
   botonAgregar.id = 'btn-agregar-estrato';
   botonAgregar.textContent = 'Agregar Estrato';
   botonAgregar.style.marginTop = '10px';
 
-  botonAgregar.addEventListener('click', agregarEstrato);
+  botonAgregar.addEventListener('click', () => agregarEstrato(true));
   document.getElementById('estratos-container').appendChild(botonAgregar);
 }
 
+function eliminarEstrato(index) {
+  const confirmar = confirm(`¿Deseas eliminar el estrato ${index}?`);
+  if (!confirmar) return;
+
+  // Buscar y eliminar el estrato
+  const estrato = document.getElementById(`desde${index}`)?.closest('.estrato');
+  const obs = document.getElementById(`observacion${index}`)?.parentElement;
+
+  if (estrato) estrato.remove();
+  if (obs) obs.remove();
+
+  totalEstratos--;
+
+  // Reordenar los títulos e IDs de todos los estratos y observaciones
+  const estratos = document.querySelectorAll('.estrato');
+  const observaciones = document.querySelectorAll('#observaciones-container > div');
+
+  estratos.forEach((estrato, idx) => {
+    const nuevoIndex = idx + 1;
+    estrato.querySelector('h4').textContent = `Estrato ${nuevoIndex}`;
+    estrato.querySelector('.btn-eliminar-estrato').dataset.index = nuevoIndex;
+  });
+
+  observaciones.forEach((obsDiv, idx) => {
+    const nuevoIndex = idx + 1;
+    obsDiv.querySelector('label').textContent = `Observación Estrato ${nuevoIndex}:`;
+    obsDiv.querySelector('textarea').id = `observacion${nuevoIndex}`;
+  });
+
+  const botonAgregar = document.getElementById('btn-agregar-estrato');
+  if (botonAgregar) botonAgregar.disabled = false;
+}
 
