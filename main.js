@@ -3,6 +3,32 @@ let datosProyecto = null;
 let contadorCalicatas = 1;
 let totalEstratos = 0;
 
+let db;
+const DB_NAME = "proyectosDB";
+const DB_VERSION = 1;
+
+window.onload = function () {
+  const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+  request.onerror = function (event) {
+    console.error("❌ Error al abrir la base de datos:", event.target.error);
+  };
+
+  request.onsuccess = function (event) {
+    db = event.target.result;
+    console.log("✅ Base de datos abierta:", DB_NAME);
+  };
+
+  request.onupgradeneeded = function (event) {
+    db = event.target.result;
+    if (!db.objectStoreNames.contains("proyectos")) {
+      const store = db.createObjectStore("proyectos", { keyPath: "id", autoIncrement: true });
+      console.log("📦 Store 'proyectos' creado");
+    }
+  };
+};
+
+
 document.addEventListener('DOMContentLoaded', () => {
   const btnIniciar = document.getElementById('btn-iniciar');
   const btnVer = document.getElementById('btn-ver');
@@ -36,8 +62,97 @@ function iniciarProyecto() {
 }
 
 function verProyectos() {
-  alert('La función "Ver Proyectos" estará disponible próximamente.');
+  const contenedor = document.getElementById('contenedor-proyectos');
+  contenedor.innerHTML = ''; // Limpiar contenido previo
+  document.getElementById('vista-proyectos').style.display = 'block';
+
+  const transaction = db.transaction(["proyectos"], "readonly");
+  const store = transaction.objectStore("proyectos");
+  const request = store.getAll();
+
+  request.onsuccess = function () {
+    const proyectos = request.result;
+
+    if (proyectos.length === 0) {
+      contenedor.innerHTML = "<p>No hay proyectos guardados.</p>";
+      return;
+    }
+
+    proyectos.forEach((p, idx) => {
+      const divProyecto = document.createElement('div');
+      divProyecto.style.border = '1px solid #ccc';
+      divProyecto.style.padding = '10px';
+      divProyecto.style.marginBottom = '15px';
+
+      let html = `
+        <h3>Proyecto ${idx + 1}: ${p.datos.proyecto}</h3>
+        <p><strong>Mandante:</strong> ${p.datos.mandante}</p>
+        <p><strong>Sector:</strong> ${p.datos.sector}</p>
+        <p><strong>Laboratorista:</strong> ${p.datos.laboratorista}</p>
+        <p><strong>Ubicación:</strong> ${p.datos.ubicacion}</p>
+        <p><strong>Fecha guardado:</strong> ${new Date(p.fechaGuardado).toLocaleString()}</p>
+        <h4>Calicatas:</h4>
+      `;
+
+      p.calicatas.forEach((c, i) => {
+        html += `
+          <div style="margin-left: 20px; border: 1px solid #eee; padding: 10px; margin-bottom: 10px;">
+            <h5>Calicata ${i + 1}: ${c.nombre}</h5>
+            <p><strong>Fecha:</strong> ${c.fecha}</p>
+            <p><strong>DM:</strong> ${c.dm}</p>
+            <p><strong>Lado:</strong> ${c.lado}</p>
+            <p><strong>Napa:</strong> ${c.napa}</p>
+            <p><strong>Espesor Capa Vegetal:</strong> ${c.espesor}</p>
+            <p><strong>Confección:</strong> ${c.confeccion}</p>
+            <p><strong>Forma:</strong> ${c.forma}</p>
+            <p><strong>Observaciones:</strong> ${c.observaciones.join('; ')}</p>
+        `;
+
+        // Mostrar imágenes en miniatura (si existen)
+        if (c.fotos?.foto1) {
+          const img1 = URL.createObjectURL(c.fotos.foto1);
+          html += `<p><strong>Foto Calicata + Cartel:</strong><br><img src="${img1}" style="max-width:150px;"></p>`;
+        }
+        if (c.fotos?.foto2) {
+          const img2 = URL.createObjectURL(c.fotos.foto2);
+          html += `<p><strong>Foto Calicata + Camino:</strong><br><img src="${img2}" style="max-width:150px;"></p>`;
+        }
+
+        html += `<h5>Estratos:</h5>`;
+        c.estratos.forEach((e, j) => {
+          html += `
+            <div style="margin-left: 20px;">
+              <h6>Estrato ${j + 1}</h6>
+              <p><strong>Desde:</strong> ${e.desde} m | <strong>Hasta:</strong> ${e.hasta} m</p>
+              <p><strong>Tamaño máx:</strong> ${e.tmax} | <strong>Bolones:</strong> ${e.bolones}</p>
+              <p><strong>Grava:</strong> ${e.grava} | <strong>Arena:</strong> ${e.arena} | <strong>Fino:</strong> ${e.fino}</p>
+              <p><strong>Color:</strong> ${e.color} | <strong>Suelo:</strong> ${e.suelo}</p>
+              <p><strong>Olor:</strong> ${e.olor} | <strong>Graduación:</strong> ${e.graduacion}</p>
+              <p><strong>Plasticidad:</strong> ${e.plasticidad} | <strong>Forma Partículas:</strong> ${e.forma}</p>
+              <p><strong>Humedad:</strong> ${e.humedad} | <strong>Compacidad:</strong> ${e.compacidad}</p>
+              <p><strong>Consistencia:</strong> ${e.consistencia}</p>
+              <p><strong>Estructura:</strong> ${e.estructura} ${e.estructuraOtro || ''}</p>
+              <p><strong>Cementación:</strong> ${e.cementacion}</p>
+              <p><strong>Origen:</strong> ${e.origen} ${e.origenOtro || ''}</p>
+              <p><strong>Materia Orgánica:</strong> ${e.organica}</p>
+              <p><strong>Nombre Local:</strong> ${e.nombrelocal}</p>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+      });
+
+      divProyecto.innerHTML = html;
+      contenedor.appendChild(divProyecto);
+    });
+  };
+
+  request.onerror = function (e) {
+    console.error("❌ Error al obtener los proyectos:", e.target.error);
+  };
 }
+
 
 function mostrarPantallaCalicata() {
   if (!document.getElementById('pantalla-calicata')) {
@@ -198,7 +313,7 @@ function mostrarEstratos() {
       <select id="olor${i}">
         <option value="" selected disabled>Seleccione</option>
         <option value="Ninguno">Ninguno</option>
-        <option value="Térro">Térro</option>
+        <option value="Térreo">Térreo</option>
         <option value="Orgánico">Orgánico</option>
       </select>
 
@@ -442,26 +557,38 @@ function guardarProyecto() {
 
   const proyectoCompleto = {
     datos: datosProyecto,
-    calicatas: calicatasGuardadas
+    calicatas: calicatasGuardadas,
+    fechaGuardado: new Date().toISOString()
   };
 
-  console.log("📦 Proyecto guardado:", proyectoCompleto);
+  const transaction = db.transaction(["proyectos"], "readwrite");
+  const store = transaction.objectStore("proyectos");
+  const request = store.add(proyectoCompleto);
 
-  // Reiniciar todo
-  datosProyecto = null;
-  calicatasGuardadas = [];
-  contadorCalicatas = 1;
+  request.onsuccess = function () {
+    console.log("📦 Proyecto guardado en IndexedDB:", proyectoCompleto);
+    alert("✅ Proyecto guardado correctamente.");
 
-  // Ocultar pantalla calicata, mostrar pantalla proyecto
-  document.getElementById('pantalla-calicata').remove();
-  document.getElementById('pantalla-proyecto').style.display = 'block';
+    // Reiniciar estado
+    datosProyecto = null;
+    calicatasGuardadas = [];
+    contadorCalicatas = 1;
 
-  // Ocultar menú superior
-  document.getElementById('menu-proyecto').style.display = 'none';
+    // UI reset
+    document.getElementById('pantalla-calicata').remove();
+    document.getElementById('pantalla-proyecto').style.display = 'block';
+    document.getElementById('menu-proyecto').style.display = 'none';
+    document.getElementById('form-proyecto').reset();
+  };
 
-  // Limpiar formulario del proyecto
-  document.getElementById('form-proyecto').reset();
+  request.onerror = function (e) {
+    console.error("❌ Error al guardar el proyecto:", e.target.error);
+    alert("❌ Error al guardar el proyecto.");
+  };
 }
+
+
+  
 
 function agregarEstrato(confirmarMensaje = true) {
 
@@ -528,7 +655,7 @@ function agregarEstrato(confirmarMensaje = true) {
     <select id="olor${i}">
       <option value="" selected disabled>Seleccione</option>
       <option value="Ninguno">Ninguno</option>
-      <option value="Térro">Térro</option>
+      <option value="Térreo">Térreo</option>
       <option value="Orgánico">Orgánico</option>
     </select>
 
