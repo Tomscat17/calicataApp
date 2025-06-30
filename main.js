@@ -885,7 +885,7 @@ async function exportarAExcel(proyectoId) {
 
     // Cargar la plantilla de Excel desde el archivo
     const wb = new ExcelJS.Workbook();
-    const response = await fetch('assets/AplicacionCalicatas.xlsx');  // Cambia esta ruta a donde tengas la plantilla
+    const response = await fetch('https://<Tomscat17>.github.io/<calicataApp>/assets/AplicacionCalicatas.xlsx');  // Cambia esta ruta a donde tengas la plantilla
     const arrayBuffer = await response.arrayBuffer();
     await wb.xlsx.load(arrayBuffer);
 
