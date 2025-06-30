@@ -890,7 +890,7 @@ async function exportarAExcel(proyectoId) {
     await wb.xlsx.load(arrayBuffer);
 
     // Seleccionamos la hoja donde vamos a escribir los datos
-    const ws = wb.getWorksheet('Aplicacion'); // Cambia 'OA-1' si la hoja tiene otro nombre
+    const ws = wb.getWorksheet('Aplicacion'); // Cambia 'Aplicacion' si la hoja tiene otro nombre
 
     // **Datos generales del proyecto** (Campos definidos en tu plantilla)
     ws.getCell('B6').value = proyecto.datos.proyecto; // Proyecto
@@ -925,35 +925,43 @@ async function exportarAExcel(proyectoId) {
       }
 
       // **Estratos** (Campos definidos en tu plantilla)
-      calicata.estratos.forEach((estrato, j) => {
-        const estratoRow = 25 + (j * 6); // Aseguramos que cada estrato se guarde en la fila correcta
-        ws.getCell(`E${estratoRow}`).value = estrato.desde;  // Desde (m)
-        ws.getCell(`E${estratoRow + 1}`).value = estrato.hasta; // Hasta (m)
-        ws.getCell(`E${estratoRow + 2}`).value = estrato.tmax; // T. Max. (pulg)
-        ws.getCell(`E${estratoRow + 3}`).value = estrato.bolones; // Bolones (% > 80 mm)
-        ws.getCell(`E${estratoRow + 4}`).value = estrato.grava; // Grava (%)
-        ws.getCell(`E${estratoRow + 5}`).value = estrato.arena; // Arena (%)
-        ws.getCell(`E${estratoRow + 6}`).value = estrato.fino;  // Fino (%)
-        ws.getCell(`E${estratoRow + 7}`).value = estrato.suelo; // Tipo de suelo fino
-        ws.getCell(`E${estratoRow + 8}`).value = estrato.color; // Color en estado natural
-        ws.getCell(`E${estratoRow + 9}`).value = estrato.olor;  // Olor
-        ws.getCell(`E${estratoRow + 10}`).value = estrato.graduacion; // Graduación
-        ws.getCell(`E${estratoRow + 11}`).value = estrato.plasticidad; // Plasticidad
-        ws.getCell(`E${estratoRow + 12}`).value = estrato.forma; // Forma de partículas
-        ws.getCell(`E${estratoRow + 13}`).value = estrato.humedad; // Humedad
-        ws.getCell(`E${estratoRow + 14}`).value = estrato.compacidad; // Compacidad
-        ws.getCell(`E${estratoRow + 15}`).value = estrato.consistencia; // Consistencia
-        ws.getCell(`E${estratoRow + 16}`).value = estrato.estructura; // Estructura
-        ws.getCell(`E${estratoRow + 17}`).value = estrato.cementacion; // Cementación
-        ws.getCell(`E${estratoRow + 18}`).value = estrato.origen; // Origen
-        ws.getCell(`E${estratoRow + 19}`).value = estrato.organica; // Materia Orgánica o Raíces
-        ws.getCell(`E${estratoRow + 20}`).value = estrato.nombrelocal; // Nombre local del Suelo
+      if (Array.isArray(calicata.estratos)) {
+        calicata.estratos.forEach((estrato, j) => {
+          if (estrato) { // Verifica que el estrato exista
+            const estratoRow = 25 + (j * 6); // Aseguramos que cada estrato se guarde en la fila correcta
+            ws.getCell(`E${estratoRow}`).value = estrato.desde || '';  // Desde (m)
+            ws.getCell(`E${estratoRow + 1}`).value = estrato.hasta || ''; // Hasta (m)
+            ws.getCell(`E${estratoRow + 2}`).value = estrato.tmax || ''; // T. Max. (pulg)
+            ws.getCell(`E${estratoRow + 3}`).value = estrato.bolones || ''; // Bolones (% > 80 mm)
+            ws.getCell(`E${estratoRow + 4}`).value = estrato.grava || ''; // Grava (%)
+            ws.getCell(`E${estratoRow + 5}`).value = estrato.arena || ''; // Arena (%)
+            ws.getCell(`E${estratoRow + 6}`).value = estrato.fino || '';  // Fino (%)
+            ws.getCell(`E${estratoRow + 7}`).value = estrato.suelo || ''; // Tipo de suelo fino
+            ws.getCell(`E${estratoRow + 8}`).value = estrato.color || ''; // Color en estado natural
+            ws.getCell(`E${estratoRow + 9}`).value = estrato.olor || '';  // Olor
+            ws.getCell(`E${estratoRow + 10}`).value = estrato.graduacion || ''; // Graduación
+            ws.getCell(`E${estratoRow + 11}`).value = estrato.plasticidad || ''; // Plasticidad
+            ws.getCell(`E${estratoRow + 12}`).value = estrato.forma || ''; // Forma de partículas
+            ws.getCell(`E${estratoRow + 13}`).value = estrato.humedad || ''; // Humedad
+            ws.getCell(`E${estratoRow + 14}`).value = estrato.compacidad || ''; // Compacidad
+            ws.getCell(`E${estratoRow + 15}`).value = estrato.consistencia || ''; // Consistencia
+            ws.getCell(`E${estratoRow + 16}`).value = estrato.estructura || ''; // Estructura
+            ws.getCell(`E${estratoRow + 17}`).value = estrato.cementacion || ''; // Cementación
+            ws.getCell(`E${estratoRow + 18}`).value = estrato.origen || ''; // Origen
+            ws.getCell(`E${estratoRow + 19}`).value = estrato.organica || ''; // Materia Orgánica o Raíces
+            ws.getCell(`E${estratoRow + 20}`).value = estrato.nombrelocal || ''; // Nombre local del Suelo
 
-        // Observaciones
-        ws.getCell(`A${estratoRow + 24}`).value = estrato.observaciones[0]; // Observación estrato 1
-        ws.getCell(`A${estratoRow + 25}`).value = estrato.observaciones[1]; // Observación estrato 2
-        ws.getCell(`A${estratoRow + 26}`).value = estrato.observaciones[2]; // Observación estrato 3
-      });
+            // Observaciones
+            if (Array.isArray(estrato.observaciones)) {
+              ws.getCell(`A${estratoRow + 24}`).value = estrato.observaciones[0] || ''; // Observación estrato 1
+              ws.getCell(`A${estratoRow + 25}`).value = estrato.observaciones[1] || ''; // Observación estrato 2
+              ws.getCell(`A${estratoRow + 26}`).value = estrato.observaciones[2] || ''; // Observación estrato 3
+            }
+          }
+        });
+      } else {
+        console.log(`❌ No hay estratos definidos para la calicata ${i + 1}`);
+      }
 
       // **Fotos** (Campos definidos en tu plantilla)
       if (calicata.fotos?.foto1) {
@@ -981,7 +989,7 @@ async function exportarAExcel(proyectoId) {
     alert("✅ El proyecto se ha exportado correctamente a Excel.");
   } catch (error) {
     console.error("❌ Error al exportar:", error);
-    alert("❌ Ocurrió un error al exportar el proyecto.");  
+    alert("❌ Ocurrió un error al exportar el proyecto.");
   }
 }
 
@@ -989,10 +997,14 @@ function obtenerProyectoPorId(proyectoId) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["proyectos"], "readonly");
     const store = transaction.objectStore("proyectos");
-    const request = store.get(proyectoId);
+    const request = store.get(proyectoId);  // Esto busca el proyecto con el ID dado
 
     request.onsuccess = function () {
-      resolve(request.result);
+      if (request.result) {
+        resolve(request.result);  // Devuelve el proyecto encontrado
+      } else {
+        reject("❌ Proyecto no encontrado.");
+      }
     };
 
     request.onerror = function () {
@@ -1000,5 +1012,6 @@ function obtenerProyectoPorId(proyectoId) {
     };
   });
 }
+
 
 
