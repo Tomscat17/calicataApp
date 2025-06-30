@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function iniciarProyecto() {
   const form = document.getElementById('form-proyecto');
 
+  // Ocultar la vista de proyectos si está abierta
+  document.getElementById('vista-proyectos').style.display = 'none';
+  document.getElementById('pantalla-proyecto').style.display = 'block'; // Asegurarse de que esté visible
+
   datosProyecto = {
     proyecto: form.proyecto.value.trim(),
     mandante: form.mandante.value.trim(),
@@ -91,7 +95,11 @@ function verProyectos() {
         <p><strong>Laboratorista:</strong> ${p.datos.laboratorista}</p>
         <p><strong>Ubicación:</strong> ${p.datos.ubicacion}</p>
         <p><strong>Fecha guardado:</strong> ${new Date(p.fechaGuardado).toLocaleString()}</p>
+
+        <!-- Botón de exportación -->
+        <button onclick="exportarAExcel(${p.id})">Exportar a Excel</button>
         <h4>Calicatas:</h4>
+        
       `;
 
       p.calicatas.forEach((c, i) => {
@@ -106,6 +114,8 @@ function verProyectos() {
             <p><strong>Confección:</strong> ${c.confeccion}</p>
             <p><strong>Forma:</strong> ${c.forma}</p>
             <p><strong>Observaciones:</strong> ${c.observaciones.join('; ')}</p>
+
+            
         `;
 
         // Mostrar imágenes en miniatura (si existen)
@@ -221,6 +231,7 @@ function mostrarPantallaCalicata() {
         <div class="botones" style="margin-top: 20px;">
           <button type="button" id="btn-guardar-calicata">Guardar Calicata</button>
           <button type="button" id="btn-guardar-proyecto" style="background-color: #28a745;">Guardar Proyecto</button>
+          <button id="btn-volver-inicio" onclick="volverAlInicio()">Volver al Inicio</button>        
         </div>
       </form>
     `;
@@ -826,4 +837,168 @@ function eliminarEstrato(index) {
   const botonAgregar = document.getElementById('btn-agregar-estrato');
   if (botonAgregar) botonAgregar.disabled = false;
 }
+
+function cerrarVistaProyectos() {
+  document.getElementById('vista-proyectos').style.display = 'none';
+  document.getElementById('pantalla-proyecto').style.display = 'block';  // Mostrar nuevamente el formulario principal
+}
+
+function volverAlInicio() {
+
+  // Mostrar confirmación antes de borrar datos
+  const confirmar = confirm("¿Estás seguro de que deseas volver al inicio sin guardar los datos?");
+  if (!confirmar) return;  // Si el usuario cancela, no hacer nada
+
+  // Eliminar cualquier dato guardado
+  datosProyecto = null;
+  calicatasGuardadas = [];
+  contadorCalicatas = 1;
+  totalEstratos = 0;
+
+  // Limpiar el formulario del proyecto
+  document.getElementById('form-proyecto').reset();
+
+  // Ocultar la vista de proyectos si está visible
+  document.getElementById('vista-proyectos').style.display = 'none';
+
+  // Volver a la pantalla de inicio del proyecto
+  document.getElementById('pantalla-proyecto').style.display = 'block';
+  document.getElementById('menu-proyecto').style.display = 'none';
+
+  // Ocultar cualquier pantalla de calicata que esté activa
+  const pantallaCalicata = document.getElementById('pantalla-calicata');
+  if (pantallaCalicata) {
+    pantallaCalicata.remove();
+  }
+
+  console.log("🔙 Regresaste al inicio sin guardar.");
+}
+
+async function exportarAExcel(proyectoId) {
+  try {
+    const proyecto = await obtenerProyectoPorId(proyectoId); // Función que obtiene el proyecto por ID
+
+    if (!proyecto) {
+      alert("❌ Proyecto no encontrado.");
+      return;
+    }
+
+    // Cargar la plantilla de Excel desde el archivo
+    const wb = new ExcelJS.Workbook();
+    const response = await fetch('assets/AplicacionCalicatas.xlsx');  // Cambia esta ruta a donde tengas la plantilla
+    const arrayBuffer = await response.arrayBuffer();
+    await wb.xlsx.load(arrayBuffer);
+
+    // Seleccionamos la hoja donde vamos a escribir los datos
+    const ws = wb.getWorksheet('Aplicacion'); // Cambia 'OA-1' si la hoja tiene otro nombre
+
+    // **Datos generales del proyecto** (Campos definidos en tu plantilla)
+    ws.getCell('B6').value = proyecto.datos.proyecto; // Proyecto
+    ws.getCell('B7').value = proyecto.datos.mandante; // Mandante
+    ws.getCell('B8').value = proyecto.datos.sector;   // Sector
+    ws.getCell('B9').value = proyecto.datos.laboratorista; // Laboratorista
+    ws.getCell('B20').value = proyecto.datos.ubicacion; // Ubicación de la obra
+
+    // **Calicatas** (Campos definidos en tu plantilla)
+    proyecto.calicatas.forEach((calicata, i) => {
+      const rowOffset = 12 + (i * 7); // Aseguramos que cada calicata se guarde en la fila correcta
+
+      ws.getCell(`B${rowOffset}`).value = calicata.fecha;    // Fecha ensayo
+      ws.getCell(`B${rowOffset + 2}`).value = calicata.nombre; // Nombre Calicata
+      ws.getCell(`B${rowOffset + 4}`).value = calicata.dm;    // Dm Calicata
+      ws.getCell(`B${rowOffset + 6}`).value = calicata.lado;  // Lado de la Calicata
+      ws.getCell(`L${rowOffset + 1}`).value = calicata.napa;  // Napa de agua
+      ws.getCell(`B${rowOffset + 5}`).value = calicata.espesor; // Espesor capa vegetal
+
+      // Confección de la calicata (dependiendo del tipo)
+      if (calicata.confeccion === "Cliente") {
+        ws.getCell(`K${rowOffset + 3}`).value = "Cliente"; // Confección Cliente
+      } else if (calicata.confeccion === "Laboral") {
+        ws.getCell(`M${rowOffset + 3}`).value = "Laboral"; // Confección Laboral
+      }
+
+      // Forma de confección
+      if (calicata.forma === "Manual") {
+        ws.getCell(`K${rowOffset + 4}`).value = "Manual";
+      } else if (calicata.forma === "Maquinaria") {
+        ws.getCell(`M${rowOffset + 4}`).value = "Maquinaria";
+      }
+
+      // **Estratos** (Campos definidos en tu plantilla)
+      calicata.estratos.forEach((estrato, j) => {
+        const estratoRow = 25 + (j * 6); // Aseguramos que cada estrato se guarde en la fila correcta
+        ws.getCell(`E${estratoRow}`).value = estrato.desde;  // Desde (m)
+        ws.getCell(`E${estratoRow + 1}`).value = estrato.hasta; // Hasta (m)
+        ws.getCell(`E${estratoRow + 2}`).value = estrato.tmax; // T. Max. (pulg)
+        ws.getCell(`E${estratoRow + 3}`).value = estrato.bolones; // Bolones (% > 80 mm)
+        ws.getCell(`E${estratoRow + 4}`).value = estrato.grava; // Grava (%)
+        ws.getCell(`E${estratoRow + 5}`).value = estrato.arena; // Arena (%)
+        ws.getCell(`E${estratoRow + 6}`).value = estrato.fino;  // Fino (%)
+        ws.getCell(`E${estratoRow + 7}`).value = estrato.suelo; // Tipo de suelo fino
+        ws.getCell(`E${estratoRow + 8}`).value = estrato.color; // Color en estado natural
+        ws.getCell(`E${estratoRow + 9}`).value = estrato.olor;  // Olor
+        ws.getCell(`E${estratoRow + 10}`).value = estrato.graduacion; // Graduación
+        ws.getCell(`E${estratoRow + 11}`).value = estrato.plasticidad; // Plasticidad
+        ws.getCell(`E${estratoRow + 12}`).value = estrato.forma; // Forma de partículas
+        ws.getCell(`E${estratoRow + 13}`).value = estrato.humedad; // Humedad
+        ws.getCell(`E${estratoRow + 14}`).value = estrato.compacidad; // Compacidad
+        ws.getCell(`E${estratoRow + 15}`).value = estrato.consistencia; // Consistencia
+        ws.getCell(`E${estratoRow + 16}`).value = estrato.estructura; // Estructura
+        ws.getCell(`E${estratoRow + 17}`).value = estrato.cementacion; // Cementación
+        ws.getCell(`E${estratoRow + 18}`).value = estrato.origen; // Origen
+        ws.getCell(`E${estratoRow + 19}`).value = estrato.organica; // Materia Orgánica o Raíces
+        ws.getCell(`E${estratoRow + 20}`).value = estrato.nombrelocal; // Nombre local del Suelo
+
+        // Observaciones
+        ws.getCell(`A${estratoRow + 24}`).value = estrato.observaciones[0]; // Observación estrato 1
+        ws.getCell(`A${estratoRow + 25}`).value = estrato.observaciones[1]; // Observación estrato 2
+        ws.getCell(`A${estratoRow + 26}`).value = estrato.observaciones[2]; // Observación estrato 3
+      });
+
+      // **Fotos** (Campos definidos en tu plantilla)
+      if (calicata.fotos?.foto1) {
+        const img1 = URL.createObjectURL(calicata.fotos.foto1);
+        ws.getCell('A57').value = { text: 'Foto calicata + cartel + regla', hyperlink: img1 }; // Agregar foto calicata
+      }
+
+      if (calicata.fotos?.foto2) {
+        const img2 = URL.createObjectURL(calicata.fotos.foto2);
+        ws.getCell('H57').value = { text: 'Foto calicata + camino', hyperlink: img2 }; // Agregar foto calicata
+      }
+    });
+
+    // Generar el archivo Excel
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+    // Descargar el archivo
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Proyecto_${proyecto.datos.proyecto}.xlsx`;
+    link.click();
+
+    // Mostrar mensaje de éxito
+    alert("✅ El proyecto se ha exportado correctamente a Excel.");
+  } catch (error) {
+    console.error("❌ Error al exportar:", error);
+    alert("❌ Ocurrió un error al exportar el proyecto.");  
+  }
+}
+
+function obtenerProyectoPorId(proyectoId) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["proyectos"], "readonly");
+    const store = transaction.objectStore("proyectos");
+    const request = store.get(proyectoId);
+
+    request.onsuccess = function () {
+      resolve(request.result);
+    };
+
+    request.onerror = function () {
+      reject("❌ Error al obtener el proyecto.");
+    };
+  });
+}
+
 
